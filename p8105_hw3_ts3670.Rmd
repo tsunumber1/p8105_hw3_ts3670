@@ -1,7 +1,7 @@
 ---
 title: "p8105_hw3_ts3670"
 author: "Tong Su"
-date: "2024-10-17"
+date: "2024-10-16"
 output: github_document
 ---
 
@@ -43,17 +43,28 @@ accelerometer_df = read_csv("./data/nhanes_accel.csv") |>
 
 demographics_df = read_csv("./data/nhanes_covar.csv",skip = 4)|> 
   filter(age >= 21) |>
-  drop_na()|>
   janitor::clean_names()
 ```
 
 ```{r}
-MIMS_df <- accelerometer_df |>
-  inner_join(demographics_df, by = "seqn")
+MIMS_df = 
+  inner_join(demographics_df,accelerometer_df, by = "seqn")|>
+  drop_na(sex, age, bmi, education) |>
+  pivot_longer(cols = starts_with("min"),
+               names_to = "minute",
+               values_to = "acc") |>
+  mutate(sex = factor(sex,
+                      levels = c(1, 2),
+                      labels = c("Male", "Female"),
+                      ordered = TRUE)) |>
+  mutate(education = factor(education,
+                            levels = c(1, 2, 3),
+                            labels = c("Less than high school", "High school equivalent", "More than high school"),
+                            ordered = TRUE))
 ```
 
 ```{r}
-education_gender <- MIMS_df |>
+education_gender = MIMS_df |>
   group_by(education, sex) |>
   summarise(count = n()) |>
   spread(key = sex, value = count, fill = 0)
@@ -69,3 +80,99 @@ education_gender <- MIMS_df |>
        y = "Density") 
 ```
 
+
+```{r}
+total_activity_data = MIMS_df |>
+  group_by(seqn, sex, age, education) |>
+  summarize(total_activity = sum(acc, na.rm = TRUE))
+
+ggplot(total_activity_data, aes(x = age, y = total_activity, color = sex)) +
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "loess", se = FALSE) +  
+  facet_wrap(~education) +  
+  labs(title = "Total Activity vs. Age by Sex and Education Level",
+       x = "Age",
+       y = "Total Activity") +
+  theme_minimal()
+```
+
+```{r}
+time_course_data <- MIMS_df |>
+  group_by(minute, sex, education) %>%
+  summarize(mean_activity = mean(acc, na.rm = TRUE))
+
+ggplot(time_course_data, aes(x = as.numeric(gsub("min", "", minute)), y = mean_activity, color = sex)) +
+  geom_point( alpha = 0.5) +
+  geom_smooth(se = FALSE, method = "loess") + 
+  facet_wrap(~education) +
+  labs(title = "24-Hour Activity Time Course by Education Level and Sex",
+       x = "Time (Minutes from Start of Day)",
+       y = "Mean Activity Level",
+       color = "Sex") +
+  theme_minimal()
+```
+
+##Problem 3
+```{r}
+jan_2020 <- read.csv("./data/citibike/Jan 2020 Citi.csv") %>%
+  mutate(year = as.factor(2020), month = as.factor(1)) %>%
+  janitor::clean_names() 
+
+jan_2024 <- read.csv("./data/citibike/Jan 2024 Citi.csv") %>%
+  mutate(year = as.factor(2024), month = as.factor(1)) %>%
+  janitor::clean_names()
+
+july_2020 <- read.csv("./data/citibike/July 2020 Citi.csv") %>%
+  mutate(year = as.factor(2020), month = as.factor(7)) %>%
+  janitor::clean_names()
+
+july_2024 <- read.csv("./data/citibike/July 2024 Citi.csv") %>%
+  mutate(year = as.factor(2024), month = as.factor(7)) %>%
+  janitor::clean_names()
+
+citi_full <- bind_rows(jan_2020, jan_2024, july_2020, july_2024) %>%
+  select(ride_id:rideable_type, year, month, everything()) %>% 
+  mutate(
+    rideable_type = as.factor(rideable_type),
+    weekdays = as.factor(weekdays),
+    duration = as.numeric(duration),
+    start_station_name = as.factor(start_station_name),
+    end_station_name = as.factor(end_station_name),
+    member_casual = as.factor(member_casual)
+  ) %>%
+  na.omit()
+```
+
+```{r Problem 3 number of rides in different member types}
+summary_table <- citi_full %>%
+  group_by(year, month, member_casual) %>%
+  summarise(total_rides = n()) %>%
+  pivot_wider(names_from = member_casual, values_from = total_rides, names_prefix = "num_")
+
+summary_table
+```
+
+```{r Problem 3 find busy stations}
+busy_stations <- citi_full %>%
+  filter(year == 2024, month == 7) %>%
+  group_by(start_station_name) %>%
+  summarise(num_rides = n()) %>%
+  arrange(desc(num_rides)) %>%
+  slice_head(n = 5)
+
+busy_stations
+```
+
+```{r}
+duration_plot <- citi_full %>%
+  mutate(weekdays = factor(weekdays, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))) %>%
+  group_by(year, month, weekdays) %>%
+  summarise(median_dur = median(duration)) %>%
+  ggplot(aes(x = weekdays, y = median_dur, fill = month)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~year) +
+  labs(title = "Median Ride Duration by Weekday, Month, and Year",
+       x = "Weekday", y = "Median Duration", fill = "Month")
+
+duration_plot
+```

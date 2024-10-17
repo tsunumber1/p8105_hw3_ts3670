@@ -114,24 +114,24 @@ ggplot(time_course_data, aes(x = as.numeric(gsub("min", "", minute)), y = mean_a
 
 ##Problem 3
 ```{r}
-jan_2020 <- read.csv("./data/citibike/Jan 2020 Citi.csv") %>%
-  mutate(year = as.factor(2020), month = as.factor(1)) %>%
+jan_2020 = read.csv("./data/citibike/Jan 2020 Citi.csv") |>
+  mutate(year = as.factor(2020), month = as.factor(1)) |>
   janitor::clean_names() 
 
-jan_2024 <- read.csv("./data/citibike/Jan 2024 Citi.csv") %>%
-  mutate(year = as.factor(2024), month = as.factor(1)) %>%
+jan_2024 = read.csv("./data/citibike/Jan 2024 Citi.csv") |>
+  mutate(year = as.factor(2024), month = as.factor(1)) |>
   janitor::clean_names()
 
-july_2020 <- read.csv("./data/citibike/July 2020 Citi.csv") %>%
-  mutate(year = as.factor(2020), month = as.factor(7)) %>%
+july_2020 = read.csv("./data/citibike/July 2020 Citi.csv") |>
+  mutate(year = as.factor(2020), month = as.factor(7)) |>
   janitor::clean_names()
 
-july_2024 <- read.csv("./data/citibike/July 2024 Citi.csv") %>%
-  mutate(year = as.factor(2024), month = as.factor(7)) %>%
+july_2024 = read.csv("./data/citibike/July 2024 Citi.csv") |>
+  mutate(year = as.factor(2024), month = as.factor(7)) |>
   janitor::clean_names()
 
-citi_full <- bind_rows(jan_2020, jan_2024, july_2020, july_2024) %>%
-  select(ride_id:rideable_type, year, month, everything()) %>% 
+citi_full = bind_rows(jan_2020, jan_2024, july_2020, july_2024) |>
+  select(ride_id:rideable_type, year, month, everything()) |>
   mutate(
     rideable_type = as.factor(rideable_type),
     weekdays = as.factor(weekdays),
@@ -139,35 +139,35 @@ citi_full <- bind_rows(jan_2020, jan_2024, july_2020, july_2024) %>%
     start_station_name = as.factor(start_station_name),
     end_station_name = as.factor(end_station_name),
     member_casual = as.factor(member_casual)
-  ) %>%
+  ) |>
   na.omit()
 ```
 
-```{r Problem 3 number of rides in different member types}
-summary_table <- citi_full %>%
-  group_by(year, month, member_casual) %>%
-  summarise(total_rides = n()) %>%
+```{r}
+summary_table = citi_full |>
+  group_by(year, month, member_casual) |>
+  summarise(total_rides = n()) |>
   pivot_wider(names_from = member_casual, values_from = total_rides, names_prefix = "num_")
 
 summary_table
 ```
 
-```{r Problem 3 find busy stations}
-busy_stations <- citi_full %>%
-  filter(year == 2024, month == 7) %>%
-  group_by(start_station_name) %>%
-  summarise(num_rides = n()) %>%
-  arrange(desc(num_rides)) %>%
+```{r}
+busy_stations = citi_full |>
+  filter(year == 2024, month == 7) |>
+  group_by(start_station_name) |>
+  summarise(num_rides = n()) |>
+  arrange(desc(num_rides)) |>
   slice_head(n = 5)
 
 busy_stations
 ```
 
 ```{r}
-duration_plot <- citi_full %>%
-  mutate(weekdays = factor(weekdays, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))) %>%
-  group_by(year, month, weekdays) %>%
-  summarise(median_dur = median(duration)) %>%
+duration_plot = citi_full |>
+  mutate(weekdays = factor(weekdays, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))) |>
+  group_by(year, month, weekdays) |>
+  summarise(median_dur = median(duration)) |>
   ggplot(aes(x = weekdays, y = median_dur, fill = month)) +
   geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~year) +

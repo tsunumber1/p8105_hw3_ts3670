@@ -10,7 +10,7 @@ library(tidyverse)
 library(ggridges)
 library(patchwork)
 
-library(p8105.datasets)
+library(p8105.datasets) 
 
 knitr::opts_chunk$set(
 	echo = TRUE,

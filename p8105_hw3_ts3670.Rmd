@@ -1,0 +1,71 @@
+---
+title: "p8105_hw3_ts3670"
+author: "Tong Su"
+date: "2024-10-17"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggridges)
+library(patchwork)
+
+library(p8105.datasets)
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+	fig.width = 8, 
+  fig.height = 6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+## Problem 1
+```{r}
+data("ny_noaa")
+```
+
+## Problem 2
+```{r}
+accelerometer_df = read_csv("./data/nhanes_accel.csv") |>
+  janitor::clean_names()
+
+demographics_df = read_csv("./data/nhanes_covar.csv",skip = 4)|> 
+  filter(age >= 21) |>
+  drop_na()|>
+  janitor::clean_names()
+```
+
+```{r}
+MIMS_df <- accelerometer_df |>
+  inner_join(demographics_df, by = "seqn")
+```
+
+```{r}
+education_gender <- MIMS_df |>
+  group_by(education, sex) |>
+  summarise(count = n()) |>
+  spread(key = sex, value = count, fill = 0)
+```
+
+```{r}
+  ggplot(MIMS_df, aes(x = age, fill = sex)) +
+  geom_density(alpha = .5) + 
+  facet_grid(education ~ sex,
+             labeller = labeller(sex = c("1" = "Men", "2" = "Women"))) +
+  labs(title = "Age Distribution by Education Level and Sex",
+       x = "Age",
+       y = "Density") 
+```
+
